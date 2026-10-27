@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keel — a calmer way to see your screen time</title>
+<meta name="description" content="Keel shows where your phone time goes, sorts it into four kinds of time, and helps you keep to the limits you set. On Android and iPhone.">
+<meta name="theme-color" content="#F2EEE6">
+<script>document.documentElement.classList.add("js")</script>
+<link rel="icon" href="assets/icon.png">
+<meta property="og:title" content="Keel — a calmer way to see your screen time">
+<meta property="og:description" content="Where your phone time goes, without the guilt. Android and iPhone.">
+<meta property="og:image" content="assets/today.jpg">
+<style>
+@font-face{font-family:Fraunces;src:url(assets/fraunces.ttf);font-weight:300 900;font-display:swap}
+@font-face{font-family:Jakarta;src:url(assets/plus_jakarta_sans.ttf);font-weight:200 800;font-display:swap}
+
+:root{
+  --base:#F2EEE6; --surface:#FFFDF9; --border:rgba(28,26,23,.11);
+  --text:#1C1A17; --muted:#524D47; --faint:#6E6860; --track:rgba(28,26,23,.07);
+  --accent:#2D518F; --on-accent:#fff; --good:#2E7A55; --over:#B4432F;
+  --create:#5B7E6B; --social:#8473A6; --scroll:#9C7643; --utility:#7A8290;
+  --serif:Fraunces,Georgia,serif; --sans:Jakarta,system-ui,sans-serif;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --base:#0E1424; --surface:#172038; --border:rgba(230,234,242,.10);
+    --text:#E6EAF2; --muted:#AAB3C7; --faint:#8A93AA; --track:rgba(230,234,242,.09);
+    --accent:#9DB6E8; --on-accent:#0E1424; --good:#86C9A2; --over:#EE8B74;
+    --create:#8DB59F; --social:#B2A5D0; --scroll:#D2AC7B; --utility:#A2A9B4;
+  }
+}
+:root[data-theme="dark"]{
+  --base:#0E1424; --surface:#172038; --border:rgba(230,234,242,.10);
+  --text:#E6EAF2; --muted:#AAB3C7; --faint:#8A93AA; --track:rgba(230,234,242,.09);
+  --accent:#9DB6E8; --on-accent:#0E1424; --good:#86C9A2; --over:#EE8B74;
+  --create:#8DB59F; --social:#B2A5D0; --scroll:#D2AC7B; --utility:#A2A9B4;
+}
+
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{background:var(--base);color:var(--text);font:400 17px/1.55 var(--sans);-webkit-font-smoothing:antialiased;transition:background .4s,color .4s;overflow-x:hidden}
+img{display:block;max-width:100%}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.02em;line-height:1.08}
+h1{font-size:clamp(2.6rem,7vw,4.6rem)}
+h2{font-size:clamp(1.9rem,4.5vw,2.9rem)}
+h3{font-size:1.35rem;line-height:1.2}
+.eyebrow{font-size:.8rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+.lede{font-size:1.15rem;color:var(--muted);max-width:34em}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+
+/* scroll progress */
+#bar{position:fixed;inset:0 0 auto 0;height:3px;z-index:60;background:var(--accent);transform-origin:0 50%;transform:scaleX(0)}
+
+/* nav */
+header.top{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--base) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .3s}
+header.top.stuck{border-color:var(--border)}
+nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:10px;font:500 1.4rem var(--serif);text-decoration:none}
+.brand img{width:34px;height:34px;border-radius:9px;transition:transform .5s var(--ease)}
+.brand:hover img{transform:rotate(-12deg) scale(1.08)}
+nav .links{display:flex;align-items:center;gap:24px;font-size:.95rem;color:var(--muted)}
+nav .links a{text-decoration:none;position:relative}
+nav .links a:not(.cta-sm)::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:2px;background:var(--accent);transform:scaleX(0);transition:transform .3s var(--ease)}
+nav .links a:hover{color:var(--text)}
+nav .links a:hover::after,nav .links a.on::after{transform:scaleX(1)}
+nav .links a.on{color:var(--text)}
+.cta-sm{color:var(--accent);font-weight:600}
+.theme{width:38px;height:38px;border-radius:50%;border:1px solid var(--border);display:grid;place-items:center;font-size:1.05rem;transition:transform .4s var(--ease),background .2s}
+.theme:hover{background:var(--track);transform:rotate(180deg)}
+@media(max-width:700px){nav .links a:not(.cta-sm){display:none}}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:16px;font-weight:600;font-size:1rem;text-decoration:none;border:1px solid transparent;transition:transform .2s var(--ease),box-shadow .2s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px rgba(14,18,32,.45)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.ghost{border-color:var(--border);background:var(--surface)}
+.btn small{display:block;font-weight:400;font-size:.72rem;opacity:.8;line-height:1.1}
+.btn span{display:block;line-height:1.15}
+.btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:32px}
+.pill{padding:9px 16px;border-radius:999px;border:1px solid var(--border);background:var(--surface);font-size:.9rem;font-weight:500;transition:background .2s,border-color .2s,color .2s,transform .2s var(--ease)}
+.pill:hover{transform:translateY(-1px);border-color:var(--accent)}
+.pill[aria-pressed="true"],.pill[aria-selected="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.seg{display:inline-flex;padding:4px;border-radius:999px;background:var(--track);gap:2px}
+.seg .pill{border:0;background:transparent}
+.seg .pill:hover{transform:none}
+.seg .pill[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:40px 20px 90px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .note{margin-top:18px;font-size:.88rem;color:var(--faint)}
+@media(max-width:860px){.hero{grid-template-columns:1fr;padding-bottom:56px}}
+.stage{position:relative;justify-self:center;perspective:1100px;width:min(330px,82vw)}
+.stage .phone{width:100%;transition:transform .25s var(--ease);will-change:transform}
+.glow{position:absolute;inset:8% -8%;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 32%,transparent),transparent);filter:blur(30px);z-index:-1;animation:breathe 7s ease-in-out infinite}
+.chip{position:absolute;padding:8px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);box-shadow:0 14px 30px -14px rgba(14,18,32,.4);font-size:.82rem;font-weight:600;white-space:nowrap;animation:bob 6s ease-in-out infinite;display:flex;gap:8px;align-items:center}
+.chip i{width:9px;height:9px;border-radius:50%}
+.chip.c1{right:-46px;top:12%;animation-delay:-1s}
+.chip.c2{right:-40px;top:44%;animation-delay:-3s}
+.chip.c3{left:-30px;bottom:12%;animation-delay:-5s}
+@media(max-width:560px){.chip.c1{right:-12px}.chip.c2{right:-12px}.chip.c3{left:-8px}}
+.tabsrow{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:26px}
+.tabsrow .pill{padding:6px 12px;font-size:.8rem}
+
+/* phone frame */
+.phone{aspect-ratio:1100/2330;border-radius:46px;padding:11px;background:#0E1220;box-shadow:0 40px 80px -30px rgba(14,18,32,.55),0 0 0 1px rgba(255,255,255,.06) inset;position:relative}
+.screen{position:relative;width:100%;height:100%;border-radius:35px;overflow:hidden}
+.screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.04);transition:opacity .7s,transform .9s var(--ease)}
+.screen img.on{opacity:1;transform:none}
+
+/* sections */
+section{padding:90px 0}
+.band{background:var(--surface);border-block:1px solid var(--border)}
+.head{max-width:36em;margin-bottom:44px}
+.head p{margin-top:16px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px}
+.band .card{background:var(--base)}
+
+/* playground */
+.play{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:28px;align-items:start}
+@media(max-width:900px){.play{grid-template-columns:minmax(0,1fr)}}
+.ringbox{text-align:center;position:sticky;top:84px}
+@media(max-width:900px){.ringbox{position:static}}
+.ring{position:relative;width:min(340px,100%);aspect-ratio:1;margin:0 auto}
+.ring svg{width:100%;height:100%;overflow:visible}
+.ring circle.seg{fill:none;stroke-width:15;stroke-linecap:round;transition:stroke-dasharray .8s var(--ease),stroke-dashoffset .8s var(--ease),opacity .3s,stroke-width .3s;cursor:pointer}
+.ring circle.seg.dim{opacity:.28}
+.ring circle.seg.hot{stroke-width:19}
+.ring circle.trk{fill:none;stroke:var(--track);stroke-width:15}
+.center{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;pointer-events:none}
+.center .big{font:400 clamp(2.6rem,9vw,3.4rem)/1 var(--serif);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.center .big small{font-size:.5em;color:var(--muted);margin:0 .12em 0 .04em}
+.center .lab{color:var(--muted);font-size:.95rem;margin-top:6px}
+.badge{margin-top:12px;padding:5px 14px;border:1px solid var(--border);border-radius:999px;font-size:.88rem;background:var(--base);pointer-events:auto}
+.legend{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:22px;text-align:left}
+.legend button{padding:8px 10px;border-radius:14px;text-align:left;transition:background .2s}
+.legend button:hover,.legend button.hot{background:var(--track)}
+.legend .n{display:flex;align-items:center;gap:7px;font-size:.82rem;color:var(--muted)}
+.legend .n i{width:9px;height:9px;border-radius:50%}
+.legend .v{font-weight:600;font-size:1.02rem;font-variant-numeric:tabular-nums}
+@media(max-width:420px){.legend{grid-template-columns:1fr 1fr}}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;margin-bottom:18px}
+.ctl label{font-size:.92rem;font-weight:500;display:flex;align-items:center;gap:8px}
+.ctl label i{width:9px;height:9px;border-radius:50%}
+.ctl output{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.92rem;text-align:right}
+.ctl input[type=range]{grid-column:1/-1}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer;--c:var(--accent);--p:50%}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:linear-gradient(to right,var(--c) var(--p),var(--track) var(--p))}
+input[type=range]::-moz-range-track{height:6px;border-radius:6px;background:var(--track)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:6px;background:var(--c)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--surface);border:3px solid var(--c);margin-top:-8px;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .15s}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--surface);border:3px solid var(--c)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--border);margin-top:6px}
+.sw b{font-weight:600;font-size:.95rem}
+.sw span{display:block;font-size:.82rem;color:var(--faint)}
+.tog{width:48px;height:28px;border-radius:999px;background:var(--track);position:relative;flex:none;transition:background .25s;border:1px solid var(--border)}
+.tog::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.3);transition:transform .3s var(--ease)}
+.tog[aria-checked="true"]{background:var(--accent)}
+.tog[aria-checked="true"]::after{transform:translateX(20px)}
+.bud{overflow:hidden;max-height:0;opacity:0;transition:max-height .5s var(--ease),opacity .3s}
+.bud.open{max-height:200px;opacity:1}
+.score{display:flex;align-items:baseline;gap:16px;margin:26px 0 8px;padding-top:22px;border-top:1px solid var(--border)}
+.score b{font:400 3.6rem/1 var(--serif);letter-spacing:-.03em;font-variant-numeric:tabular-nums;transition:color .4s}
+.score span{font-size:1.02rem;color:var(--muted)}
+.rows{display:grid;gap:10px;margin-top:14px}
+.row{display:grid;grid-template-columns:150px 1fr 54px;gap:10px;align-items:center;font-size:.86rem;color:var(--muted)}
+.row .t{height:8px;border-radius:8px;background:var(--track);position:relative;overflow:hidden}
+.row .t i{position:absolute;left:0;top:0;bottom:0;border-radius:8px;width:0;transition:width .6s var(--ease)}
+.row em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);font-weight:600}
+@media(max-width:480px){.row{grid-template-columns:110px 1fr 48px}}
+
+/* insights */
+.two{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:48px;align-items:center}
+.two>*,.play>*,.feature>*,.hfbox>*{min-width:0}
+@media(max-width:900px){.two{grid-template-columns:minmax(0,1fr);gap:32px}}
+.two h2{margin-bottom:18px}
+.two>div>p{color:var(--muted)}
+.heat{display:grid;grid-template-columns:18px repeat(24,minmax(0,1fr));gap:3px;align-items:center;margin-top:18px}
+.heat .d{font-size:.7rem;color:var(--faint);text-align:center}
+.heat button{padding:0;aspect-ratio:1/1.35;border-radius:4px;background:color-mix(in srgb,var(--text) calc(var(--v)*88%),transparent);min-width:0;transition:transform .15s,outline-color .15s;outline:2px solid transparent}
+.heat button:hover,.heat button:focus-visible{transform:scale(1.5);z-index:2;position:relative;outline-color:var(--accent)}
+.heat button.pop{animation:pop .5s var(--ease) backwards}
+.hx{display:grid;grid-template-columns:18px repeat(24,minmax(0,1fr));gap:3px;font-size:.7rem;color:var(--faint);margin-top:6px}
+.hx span{grid-column:span 6;text-align:left}
+.hx span:first-child{grid-column:2/span 6}
+.tip{min-height:1.6em;margin-top:12px;font-size:.92rem;color:var(--muted)}
+.tip b{color:var(--text)}
+.busy{font:400 1.45rem/1.2 var(--serif);margin:16px 0 4px}
+.habits{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 20px;margin-top:22px;padding-top:20px;border-top:1px solid var(--border)}
+.habits small{display:block;color:var(--faint);font-size:.82rem}
+.habits b{display:block;font-weight:600;font-size:1.12rem;font-variant-numeric:tabular-nums}
+.habits span{font-size:.82rem;color:var(--muted)}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
+
+.shot{width:min(330px,82vw);justify-self:center;transition:transform .5s var(--ease)}
+.shot:hover{transform:translateY(-6px) rotate(-1.2deg)}
+.ticks{list-style:none;padding:0;margin-top:22px;display:grid;gap:14px}
+.ticks li{padding-left:24px;position:relative;font-size:.98rem}
+.ticks li::before{content:"";position:absolute;left:0;top:.6em;width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.ticks li b{font-weight:600}.ticks li span{color:var(--muted)}
+@media(max-width:900px){.two .shot{order:0}}
+
+/* focus tabs */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.tabs .pill{padding:11px 20px;font-size:.98rem}
+.panel[hidden]{display:none}
+.panel{animation:rise .5s var(--ease)}
+.dots{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 6px}
+.dots i{width:18px;height:18px;border-radius:50%;background:var(--accent);transition:background .3s,transform .3s var(--ease);display:block}
+.dots i.rest{background:transparent;border:2px dashed var(--faint)}
+.dots i.miss{background:var(--over)}
+.dots i.pre{background:var(--track)}
+.dots i.flash{animation:pop .5s var(--ease)}
+.meter{height:12px;border-radius:12px;background:var(--track);position:relative;margin-top:14px;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:12px;background:var(--good);transition:width .4s var(--ease),background .3s}
+.meter.over i{background:var(--over)}
+.meter u{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--text);transition:left .3s var(--ease)}
+.kv{display:flex;justify-content:space-between;font-size:.88rem;color:var(--muted);margin-top:8px;gap:12px}
+.status{margin-top:12px;font-weight:600}
+.status.good{color:var(--good)}.status.over{color:var(--over)}
+
+/* hard focus demo */
+.dark{--base:#0E1424;--surface:#172038;--border:rgba(230,234,242,.10);--text:#E6EAF2;--muted:#AAB3C7;--faint:#8A93AA;--track:rgba(230,234,242,.09);--accent:#9DB6E8;--on-accent:#0E1424;--good:#86C9A2;--over:#EE8B74;--create:#8DB59F;--social:#B2A5D0;--scroll:#D2AC7B;--utility:#A2A9B4;background:var(--base);color:var(--text)}
+.hfbox{border-radius:28px;padding:36px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;border:1px solid var(--border);position:relative;overflow:hidden}
+@media(max-width:860px){.hfbox{grid-template-columns:minmax(0,1fr);padding:24px}}
+.hfbox::before{content:"";position:absolute;width:420px;height:420px;right:-120px;top:-160px;background:radial-gradient(closest-side,rgba(157,182,232,.18),transparent);pointer-events:none}
+.hfbox h3{font-size:2rem;margin-bottom:12px}
+.hfbox p{color:var(--muted)}
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:12px;counter-reset:s}
+.steps li{counter-increment:s;padding-left:38px;position:relative;font-size:.96rem}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);display:grid;place-items:center;font-size:.8rem;font-weight:600;color:var(--accent)}
+.hfctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.hfstats{margin-top:18px;display:flex;gap:26px;font-size:.88rem;color:var(--muted)}
+.hfstats b{display:block;font:400 1.7rem var(--serif);color:var(--text);font-variant-numeric:tabular-nums}
+.demo{width:min(270px,70vw);justify-self:center}
+.demo .screen{background:linear-gradient(170deg,#1c2748,#0E1424 70%);color:#E6EAF2;padding:34px 14px 14px;display:flex;flex-direction:column}
+.demo .sb{position:absolute;top:10px;left:18px;right:18px;display:flex;justify-content:space-between;font-size:.68rem;opacity:.8}
+.bannerhf{margin-bottom:14px;padding:8px 10px;border-radius:12px;background:rgba(157,182,232,.14);font-size:.72rem;text-align:center;opacity:0;transform:translateY(-6px);transition:.4s var(--ease)}
+.bannerhf.on{opacity:1;transform:none}
+.bannerhf b{font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px;margin-top:4px}
+.app{display:grid;justify-items:center;gap:5px;font-size:.62rem;color:#cdd5e6;position:relative}
+.app .ic{width:100%;max-width:52px;aspect-ratio:1;border-radius:14px;display:grid;place-items:center;font:600 1.1rem var(--serif);color:#0E1424;transition:transform .2s var(--ease),filter .4s,opacity .4s;position:relative}
+.app:hover .ic{transform:scale(1.07)}
+.app:active .ic{transform:scale(.94)}
+.app.sel .ic::after{content:"";position:absolute;inset:-4px;border-radius:17px;border:2px solid #9DB6E8}
+.app.sel .ic::before{content:"✓";position:absolute;right:-6px;top:-6px;width:17px;height:17px;border-radius:50%;background:#9DB6E8;color:#0E1424;font-size:.65rem;display:grid;place-items:center;z-index:2;font-family:var(--sans);font-weight:700}
+.app.lock .ic{filter:grayscale(1) brightness(.5);opacity:.75}
+.app.lock .ic::before{content:"🔒";position:absolute;inset:0;display:grid;place-items:center;font-size:.9rem;filter:none;z-index:2}
+.hint{margin-top:auto;text-align:center;font-size:.66rem;color:#8A93AA;padding-top:10px}
+.block{position:absolute;inset:0;background:#0E1424;display:grid;place-content:center;justify-items:center;text-align:center;padding:24px;gap:10px;opacity:0;pointer-events:none;transform:scale(1.04);transition:opacity .3s,transform .4s var(--ease)}
+.block.on{opacity:1;pointer-events:auto;transform:none}
+.block .ic{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;font:600 1.5rem var(--serif);color:#0E1424;margin-bottom:6px}
+.block h4{font:400 1.45rem/1.15 var(--serif)}
+.block p{font-size:.78rem;color:#AAB3C7}
+.block button{margin-top:8px;width:100%;padding:11px;border-radius:12px;background:#9DB6E8;color:#0E1424;font-weight:600;font-size:.85rem}
+.opened{position:absolute;inset:0;background:#F2EEE6;color:#1C1A17;display:grid;place-content:center;justify-items:center;text-align:center;padding:24px;gap:8px;opacity:0;pointer-events:none;transition:opacity .3s}
+.opened.on{opacity:1;pointer-events:auto}
+.opened .ic{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;font:600 1.5rem var(--serif);color:#0E1424}
+.opened button{margin-top:8px;padding:9px 18px;border-radius:12px;background:#2D518F;color:#fff;font-weight:600;font-size:.82rem}
+.shake{animation:shake .45s}
+
+/* platforms */
+.plat{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:stretch}
+@media(max-width:760px){.plat{grid-template-columns:1fr}}
+.plat ul{list-style:none;padding:0;display:grid;gap:12px;font-size:.98rem;color:var(--muted);margin-top:18px}
+.plat li{padding-left:28px;position:relative;animation:rise .5s var(--ease) backwards}
+.plat li::before{content:"✓";position:absolute;left:0;color:var(--good);font-weight:700}
+.plat li:nth-child(2){animation-delay:.06s}.plat li:nth-child(3){animation-delay:.12s}.plat li:nth-child(4){animation-delay:.18s}
+.plat .note{display:flex;flex-direction:column;justify-content:center;gap:10px}
+.plat .note p{color:var(--muted);font-size:.96rem}
+.plat .note h3{font-size:1.5rem}
+.plat .big{font:400 3.2rem/1 var(--serif);color:var(--accent)}
+
+/* respect */
+.priv{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.priv div{border-top:1px solid var(--border);padding-top:18px;transition:border-color .3s,transform .3s var(--ease)}
+.priv div:hover{border-color:var(--accent);transform:translateY(-3px)}
+.priv h3{font-family:var(--sans);font-weight:600;font-size:1.02rem;letter-spacing:0;margin-bottom:6px}
+.priv p{font-size:.93rem;color:var(--muted)}
+@media(max-width:700px){.priv{grid-template-columns:1fr}}
+
+/* final */
+.final{text-align:center;overflow:hidden;position:relative}
+.final img{width:84px;height:84px;border-radius:22px;margin:0 auto 26px;animation:bob 5s ease-in-out infinite}
+.final .lede{margin:18px auto 0}
+.final .btns{justify-content:center}
+footer{padding:36px 0 48px;color:var(--faint);font-size:.88rem;border-top:1px solid var(--border)}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+footer a{text-decoration:none}footer a:hover{text-decoration:underline}
+
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes breathe{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+@keyframes up{from{opacity:0;transform:translateY(.45em)}to{opacity:1;transform:none}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+
+@media(prefers-reduced-motion:no-preference){
+  .js .reveal{opacity:0;transform:translateY(22px);transition:opacity .8s var(--ease) var(--d,0s),transform .8s var(--ease) var(--d,0s)}
+  .js .reveal.in{opacity:1;transform:none}
+  .js .w{display:inline-block;opacity:0;animation:up .8s var(--ease) forwards;animation-delay:var(--d)}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div id="bar" aria-hidden="true"></div>
+
+<header class="top" id="hdr">
+  <div class="wrap">
+    <nav aria-label="Main">
+      <a class="brand" href="#top"><img src="assets/icon.png" alt="" width="34" height="34">Keel</a>
+      <div class="links">
+        <a href="#try" data-s="try">Try the ring</a>
+        <a href="#insights" data-s="insights">Insights</a>
+        <a href="#apps" data-s="apps">Apps</a>
+        <a href="#focus" data-s="focus">Focus</a>
+        <a href="#platforms" data-s="platforms">Android &amp; iPhone</a>
+        <a class="cta-sm" href="#get">Get Keel</a>
+        <button class="theme" id="theme" aria-label="Switch light or dark theme" title="Switch theme">◐</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- HERO -->
+<div class="wrap hero">
+  <div>
+    <p class="eyebrow w" style="--d:.05s">Screen time, made readable</p>
+    <h1 aria-label="See where your phone time actually goes.">
+      <span class="w" style="--d:.1s">See</span> <span class="w" style="--d:.17s">where</span> <span class="w" style="--d:.24s">your</span>
+      <span class="w" style="--d:.31s">phone</span> <span class="w" style="--d:.38s">time</span>
+      <em class="w" style="--d:.45s">actually</em> <span class="w" style="--d:.52s">goes.</span>
+    </h1>
+    <p class="lede w" style="margin-top:22px;--d:.7s">Keel sorts your day into four kinds of time, points out the long scrolls without judging them, and helps you keep to the limits you set.</p>
+    <div class="btns w" style="--d:.85s">
+      <a class="btn primary" href="#get"><span><small>Get it on</small>Google Play</span></a>
+      <a class="btn ghost" href="#get"><span><small>Download on the</small>App Store</span></a>
+    </div>
+    <p class="note w" style="--d:1s">Free. No account. Android 8+ and iPhone on iOS 17+.</p>
+  </div>
+
+  <div>
+    <div class="stage" id="stage">
+      <div class="glow"></div>
+      <div class="phone" id="heroPhone">
+        <div class="screen" id="carousel">
+          <img class="on" src="assets/today.jpg" alt="Keel's Today screen: 1 hour 39 minutes of screen time in a ring split into four kinds of time, with a Balance score of 100" width="1100" height="2330">
+          <img src="assets/apps.jpg" alt="Apps screen: every app ranked by time today, with its real icon and kind of time" width="1100" height="2330" loading="lazy">
+          <img src="assets/week.jpg" alt="Insights screen: a week of stacked bars, Thursday called out as the most balanced day" width="1100" height="2330" loading="lazy">
+          <img src="assets/focus.jpg" alt="Focus screen: pick how long and how strict, then start" width="1100" height="2330" loading="lazy">
+          <img src="assets/blocked.jpg" alt="A blocked app screen: YouTube is blocked, Hard Focus is on until 6:49 PM" width="1100" height="2330" loading="lazy">
+        </div>
+      </div>
+      <div class="chip c1"><i style="background:var(--social)"></i>Social · 54m</div>
+      <div class="chip c2"><i style="background:var(--good)"></i>Within budget</div>
+      <div class="chip c3"><i style="background:var(--create)"></i>12 days in a row</div>
+    </div>
+    <div class="tabsrow" role="group" aria-label="Screens" id="ctabs">
+      <button class="pill" aria-pressed="true">Today</button>
+      <button class="pill" aria-pressed="false">Apps</button>
+      <button class="pill" aria-pressed="false">Insights</button>
+      <button class="pill" aria-pressed="false">Focus</button>
+      <button class="pill" aria-pressed="false">Hard Focus</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYGROUND -->
+<section class="band" id="try">
+  <div class="wrap">
+    <div class="head reveal">
+      <p class="eyebrow">Try it yourself</p>
+      <h2>Build a day. See its Balance.</h2>
+      <p>This is Keel’s real scoring. Drag the sliders, or tap a preset, and watch the ring and the score respond. Tap a colour on the ring to see its share.</p>
+    </div>
+
+    <div class="play">
+      <div class="ringbox reveal">
+        <div class="ring" id="ring">
+          <svg viewBox="0 0 200 200" role="img" aria-label="Ring showing today's time split into four kinds">
+            <circle class="trk" cx="100" cy="100" r="82"/>
+            <g id="segs" transform="rotate(-90 100 100)"></g>
+          </svg>
+          <div class="center">
+            <div class="big" id="cBig">0<small>m</small></div>
+            <div class="lab" id="cLab">screen time</div>
+            <div class="badge" id="cBadge">Balance 100</div>
+          </div>
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="card reveal" style="--d:.1s">
+        <div class="presets" id="presets">
+          <button class="pill">A quiet day</button>
+          <button class="pill">A typical day</button>
+          <button class="pill">Doomscroll night</button>
+        </div>
+        <div id="ctls"></div>
+
+        <div class="sw">
+          <div><b>Daily budgets</b><span>Set a target for total time and scrolling</span></div>
+          <button class="tog" id="budTog" role="switch" aria-checked="false" aria-label="Daily budgets"></button>
+        </div>
+        <div class="bud" id="bud"><div id="budCtls" style="padding-top:14px"></div></div>
+
+        <div class="score" aria-live="polite">
+          <b id="sNum">100</b><span id="sLab">Nicely balanced</span>
+        </div>
+        <div class="rows" id="rows"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSIGHTS -->
+<section id="insights">
+  <div class="wrap">
+    <div class="two">
+      <div class="reveal">
+        <p class="eyebrow">Insights</p>
+        <h2>Your habits, in plain sentences.</h2>
+        <p>Every section starts with what it found, and the chart under it shows why. Look at one day in detail, or your week or month at a glance.</p>
+        <p style="margin-top:14px">Hover or tap a square on the heatmap to see that hour. Switch between weekdays and weekends to watch the headline change.</p>
+      </div>
+      <div class="card reveal" style="--d:.1s">
+        <div class="cardhead">
+          <h3>When you use your phone</h3>
+          <div class="seg" id="range" role="group" aria-label="Days">
+            <button class="pill" aria-pressed="true" data-r="all">All week</button>
+            <button class="pill" aria-pressed="false" data-r="wd">Weekdays</button>
+            <button class="pill" aria-pressed="false" data-r="we">Weekend</button>
+          </div>
+        </div>
+        <p class="busy" id="busy"></p>
+        <p style="color:var(--muted);font-size:.95rem" id="busy2"></p>
+        <div class="heat" id="heat" role="grid" aria-label="Minutes per hour for each day of the week"></div>
+        <div class="hx"><span>12a</span><span>6a</span><span>12p</span><span>6p</span></div>
+        <p class="tip" id="tip" aria-live="polite">Darker means more minutes in that hour.</p>
+        <div class="habits">
+          <div><small>First app of the day</small><b>TikTok</b><span>on 5 of 7 mornings</span></div>
+          <div><small>Before 9am</small><b><span data-count="9" style="font-size:inherit;color:inherit">0</span> unlocks</b><span>on an average day</span></div>
+          <div><small>Last use at night</small><b>12:16 AM</b><span>on average</span></div>
+          <div><small>Quick checks</small><b><span data-count="1" style="font-size:inherit;color:inherit">0</span> a day</b><span>under 30s each</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APPS + RUN -->
+<section class="band" id="apps">
+  <div class="wrap">
+    <div class="two" style="align-items:center">
+      <div class="phone shot reveal"><div class="screen"><img class="on" loading="lazy" src="assets/apps.jpg" alt="Apps screen: Claude, Brave, Telegram, LinkedIn and Slack ranked by time today, each with its icon, kind of time and how often it was opened" width="1100" height="2330"></div></div>
+      <div class="reveal" style="--d:.1s">
+        <p class="eyebrow">Apps</p>
+        <h2>Every app, ranked. Every opening, counted.</h2>
+        <p>See where the time went, today, over 7 days or over 30. Each app shows its real icon, the kind of time it belongs to, and how many times you opened it.</p>
+        <ul class="ticks">
+          <li><b>Kind of time.</b> <span>If Keel guesses an app’s kind wrong, change it.</span></li>
+          <li><b>Daily limit.</b> <span>A gentle reminder when you pass the time you set. It never blocks the app.</span></li>
+          <li><b>Opened N times.</b> <span>Often the number that surprises people more than the minutes.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="two" style="align-items:center;margin-top:110px">
+      <div class="reveal">
+        <p class="eyebrow">Your run</p>
+        <h2>Days in a row. Time given back.</h2>
+        <p>Keel keeps a run of days within your budget, with room for the odd off day. Under it, “Time back” adds up how much less you spent on your phone than a usual day would have taken.</p>
+        <ul class="ticks">
+          <li><b>Rest days.</b> <span>One missed day a week doesn’t count, and doesn’t break the run.</span></li>
+          <li><b>Time back.</b> <span>Measured against your own first week of history, not someone else’s average.</span></li>
+        </ul>
+      </div>
+      <div class="phone shot reveal" style="--d:.1s"><div class="screen"><img class="on" loading="lazy" src="assets/run.jpg" alt="Your run: 12 days in a row within budget with 2 rest days, and Time back: 1 hour 21 minutes less on your phone than a usual day" width="1100" height="2330"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOCUS -->
+<section class="band" id="focus">
+  <div class="wrap">
+    <div class="head reveal">
+      <p class="eyebrow">Focus</p>
+      <h2>Gentle by default. Firm when you ask.</h2>
+      <p>Three levels, so you choose how much help you want. Try each one.</p>
+    </div>
+
+    <div class="tabs reveal" role="tablist" aria-label="Focus levels">
+      <button class="pill" role="tab" id="t0" aria-controls="p0" aria-selected="true">Daily budgets</button>
+      <button class="pill" role="tab" id="t1" aria-controls="p1" aria-selected="false" tabindex="-1">Focus session</button>
+      <button class="pill" role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1">Hard Focus</button>
+    </div>
+
+    <!-- budgets -->
+    <div class="panel card reveal" id="p0" role="tabpanel" aria-labelledby="t0">
+      <div class="two" style="align-items:start;gap:40px">
+        <div>
+          <h3 style="font-size:1.8rem;margin-bottom:10px">Targets that build a run.</h3>
+          <p style="color:var(--muted)">Set a limit for scrolling. Days within it build your run. Everyone has an off day, so one missed day a week doesn’t break it. A second one that week does.</p>
+          <div class="ctl" style="margin-top:22px">
+            <label for="bSlide"><i style="background:var(--scroll)"></i>Scrolling budget</label>
+            <output id="bOut">1h 30m</output>
+            <input type="range" id="bSlide" min="30" max="150" step="5" value="90" style="--c:var(--scroll)">
+          </div>
+          <div class="meter" id="meter"><i id="mFill"></i><u id="mMark"></u></div>
+          <div class="kv"><span id="mSo">Today so far: 1h 1m</span><span id="mBud"></span></div>
+          <p class="status" id="mStat"></p>
+        </div>
+        <div>
+          <p class="eyebrow">Last two weeks</p>
+          <div class="dots" id="dots" aria-label="Last two weeks"></div>
+          <p style="margin-top:14px;font:400 2.4rem/1 var(--serif)" id="run">0 days</p>
+          <p style="color:var(--muted);font-size:.92rem;margin-top:6px" id="runNote"></p>
+          <p style="color:var(--faint);font-size:.82rem;margin-top:16px">Filled = within budget · Dashed = rest day · Red = a second miss in the week</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- session -->
+    <div class="panel card" id="p1" role="tabpanel" aria-labelledby="t1" hidden>
+      <div class="two" style="align-items:start;gap:40px">
+        <div>
+          <h3 style="font-size:1.8rem;margin-bottom:10px">A pause, not a wall.</h3>
+          <p style="color:var(--muted)">A focus session rests your Social and Scroll apps until the timer ends. You can still open one if you really need it.</p>
+          <p class="eyebrow" style="margin-top:24px">For how long?</p>
+          <div class="seg" id="fdur" role="group" aria-label="Duration">
+            <button class="pill" aria-pressed="false" data-m="25">25 min</button>
+            <button class="pill" aria-pressed="true" data-m="60">1 hour</button>
+            <button class="pill" aria-pressed="false" data-m="120">2 hours</button>
+          </div>
+          <div style="margin-top:20px"><button class="btn primary" id="fgo" style="padding:12px 22px">Start focus</button></div>
+        </div>
+        <div>
+          <div id="fcard" style="border:1px solid var(--border);border-radius:20px;padding:22px;background:var(--surface)">
+            <p class="eyebrow" id="fEye">Not running</p>
+            <p style="font:400 1.9rem/1.15 var(--serif)" id="fTitle">Pick a length, then start.</p>
+            <p style="color:var(--muted);margin-top:8px;font-size:.95rem" id="fSub">Social &amp; Scroll apps stay open until you do.</p>
+            <div class="hfctl" id="fapps" style="margin-top:16px">
+              <button class="pill" data-a="TikTok">TikTok</button>
+              <button class="pill" data-a="Instagram">Instagram</button>
+              <button class="pill" data-a="Messages">Messages</button>
+              <button class="pill" data-a="Maps">Maps</button>
+            </div>
+            <p class="tip" id="fMsg" aria-live="polite"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- hard focus -->
+    <div class="panel hfbox dark" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+      <div>
+        <h3>When you mean it, it means it.</h3>
+        <p>Pick the apps, pick the time. Until it ends, they simply won’t open. Set it for a work block, or every night after 11pm.</p>
+        <ol class="steps">
+          <li>Tap apps on the phone to choose what to block.</li>
+          <li>Start Hard Focus.</li>
+          <li>Try opening a blocked app. Then try to end it early.</li>
+        </ol>
+        <div class="hfctl">
+          <div class="seg" id="hdur" role="group" aria-label="Duration">
+            <button class="pill" aria-pressed="false" data-m="25">25 min</button>
+            <button class="pill" aria-pressed="true" data-m="60">1 hour</button>
+            <button class="pill" aria-pressed="false" data-m="180">3 hours</button>
+          </div>
+          <button class="btn primary" id="hgo" style="padding:11px 20px">Start Hard Focus</button>
+          <button class="pill" id="hend">End early</button>
+        </div>
+        <p class="tip" id="hmsg" aria-live="polite" style="min-height:3em"></p>
+        <div class="hfstats">
+          <div><b id="hHeld">0</b>times held back</div>
+          <div><b id="hBlk">3</b>apps blocked</div>
+        </div>
+      </div>
+      <div class="phone demo">
+        <div class="screen">
+          <div class="sb"><span id="clock">9:41</span><span>●●●</span></div>
+          <div class="bannerhf" id="hBanner">Hard Focus · <b id="hLeft">60:00</b> left</div>
+          <div class="grid" id="appgrid"></div>
+          <div class="hint" id="hHint">Tap apps to choose what to block</div>
+          <div class="block" id="blk">
+            <div class="ic" id="blkIc">T</div>
+            <h4 id="blkT">TikTok is blocked</h4>
+            <p id="blkS">Hard Focus is on until 6:49 PM. It’ll open again then.</p>
+            <button id="blkB">Go home</button>
+          </div>
+          <div class="opened" id="opn">
+            <div class="ic" id="opnIc">M</div>
+            <b id="opnT">Mail</b>
+            <span style="font-size:.78rem;color:#524D47">Opens normally. It isn’t blocked.</span>
+            <button id="opnB">Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORMS -->
+<section id="platforms">
+  <div class="wrap">
+    <div class="head reveal">
+      <p class="eyebrow">Both platforms</p>
+      <h2>Same app, built natively for each phone.</h2>
+    </div>
+    <div class="reveal" style="margin-bottom:22px">
+      <div class="seg" id="os" role="group" aria-label="Platform">
+        <button class="pill" aria-pressed="true" data-os="a">Android</button>
+        <button class="pill" aria-pressed="false" data-os="i">iPhone</button>
+      </div>
+    </div>
+    <div class="plat reveal">
+      <div class="card">
+        <h3 id="osName">Android</h3>
+        <p style="color:var(--faint);font-size:.9rem" id="osSub">Android 8 and up</p>
+        <ul id="osList"></ul>
+      </div>
+      <div class="card note">
+        <div class="big" id="osBig">Widget</div>
+        <h3 id="osH">Today, from your home screen.</h3>
+        <p id="osP">The Keel widget shows today’s screen time, your scrolling and your run without opening the app.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESPECT -->
+<section class="band">
+  <div class="wrap">
+    <div class="head reveal">
+      <p class="eyebrow">Respect</p>
+      <h2>A mirror, not a scold.</h2>
+    </div>
+    <div class="priv">
+      <div class="reveal"><h3>Pointed out, never judged</h3><p>A long scroll is noted in a sentence, not flagged in red with a streak you’ve “lost”.</p></div>
+      <div class="reveal" style="--d:.1s"><h3>Limits that don’t nag</h3><p>An app limit is a gentle reminder. It never blocks anything unless you turn on Hard Focus.</p></div>
+      <div class="reveal" style="--d:.2s"><h3>Your usage stays yours</h3><p>No account to create and no ads. Your history stays on your phone, and <a href="privacy.html" style="color:var(--accent)">the details are in plain words</a>.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="final" id="get">
+  <div class="wrap reveal">
+    <img src="assets/icon.png" alt="Keel app icon" width="84" height="84">
+    <h2>Steady the day.</h2>
+    <p class="lede">Keel is free on Android and iPhone. It takes a minute to set up and one permission to start.</p>
+    <div class="btns">
+      <a class="btn primary" href="#"><span><small>Get it on</small>Google Play</span></a>
+      <a class="btn ghost" href="#"><span><small>Download on the</small>App Store</span></a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Konio Softworks</span>
+    <span><a href="privacy.html">Privacy</a> · <a href="mailto:schiduluca@gmail.com">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+var $=function(s,r){return (r||document).querySelector(s)},$$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+var headless=/HeadlessChrome/.test(navigator.userAgent);
+function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e}
+function dur(m){m=Math.round(m);var h=Math.floor(m/60),r=m%60;return h?(r?h+'h '+r+'m':h+'h'):m+'m'}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n)}
+function fill(r){var p=(r.value-r.min)/(r.max-r.min)*100;r.style.setProperty('--p',p+'%')}
+
+/* ---------- theme ---------- */
+var root=document.documentElement;
+function effective(){var t=root.getAttribute('data-theme');return t||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}
+try{var saved=localStorage.getItem('keel-theme');if(saved)root.setAttribute('data-theme',saved)}catch(e){}
+$('#theme').addEventListener('click',function(){
+  var n=effective()==='dark'?'light':'dark';root.setAttribute('data-theme',n);
+  try{localStorage.setItem('keel-theme',n)}catch(e){}
+});
+
+/* ---------- scroll: progress bar, header, active nav ---------- */
+var bar=$('#bar'),hdr=$('#hdr');
+function onScroll(){
+  var h=document.documentElement.scrollHeight-innerHeight;
+  bar.style.transform='scaleX('+(h>0?scrollY/h:0)+')';
+  hdr.classList.toggle('stuck',scrollY>8);
+}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+var links=$$('nav .links a[data-s]');
+if('IntersectionObserver' in window){
+  var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){links.forEach(function(a){a.classList.toggle('on',a.dataset.s===e.target.id)})}})},{rootMargin:'-45% 0px -50% 0px'});
+  ['try','insights','apps','focus','platforms'].forEach(function(id){so.observe($('#'+id))});
+}
+
+/* ---------- reveal + count-up ---------- */
+function countUp(e){
+  var to=+e.dataset.count;if(reduce||headless){e.textContent=to;return}
+  var t0=performance.now();(function f(t){var p=Math.min(1,(t-t0)/900);e.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0);
+}
+var els=$$('.reveal');
+if(!('IntersectionObserver' in window)||headless){els.forEach(function(e){e.classList.add('in')});$$('[data-count]').forEach(countUp)}
+else{
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');$$('[data-count]',e.target).forEach(countUp);io.unobserve(e.target)}})},{threshold:.12});
+  els.forEach(function(e){io.observe(e)});
+}
+
+/* ---------- hero: carousel + tilt ---------- */
+var imgs=$$('#carousel img'),ct=$$('#ctabs .pill'),ci=0,auto;
+function show(i){ci=i;imgs.forEach(function(m,k){m.classList.toggle('on',k===i)});ct.forEach(function(b,k){b.setAttribute('aria-pressed',k===i)})}
+function start(){stop();if(!reduce)auto=setInterval(function(){show((ci+1)%imgs.length)},3800)}
+function stop(){clearInterval(auto)}
+ct.forEach(function(b,k){b.addEventListener('click',function(){show(k);start()})});
+start();
+var stage=$('#stage'),hp=$('#heroPhone');
+if(!reduce&&matchMedia('(hover:hover)').matches){
+  stage.addEventListener('pointermove',function(e){
+    var r=stage.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+    hp.style.transform='rotateY('+(x*16)+'deg) rotateX('+(-y*12)+'deg) translateZ(0)';
+  });
+  stage.addEventListener('pointerleave',function(){hp.style.transform=''});
+}
+
+/* ---------- playground: ring + Balance ---------- */
+var CATS=[{k:'create',n:'Create',c:'--create'},{k:'social',n:'Social',c:'--social'},{k:'scroll',n:'Scroll',c:'--scroll'},{k:'utility',n:'Utility',c:'--utility'}];
+var S={create:23,social:17,scroll:61,utility:25,late:0,long:1,bud:false,bTotal:300,bScroll:90};
+var ctlDefs=[
+  {k:'create',l:'Create & Learn',max:300,c:'--create'},{k:'social',l:'Social & Chat',max:300,c:'--social'},
+  {k:'scroll',l:'Scroll',max:360,c:'--scroll'},{k:'utility',l:'Utility',max:300,c:'--utility'},
+  {k:'late',l:'Scrolling after 11pm',max:120,c:'--scroll'},{k:'long',l:'Long scrolls (15+ min)',max:3,c:'--scroll',step:1,unit:''}
+];
+var ctls=$('#ctls'),inputs={};
+function mkCtl(d,host){
+  var w=el('div','ctl'),id='r_'+d.k;
+  w.innerHTML='<label for="'+id+'"><i style="background:var('+d.c+')"></i>'+d.l+'</label><output id="o_'+d.k+'"></output>';
+  var r=el('input');r.type='range';r.id=id;r.min=d.min||0;r.max=d.max;r.step=d.step||5;r.value=S[d.k];r.style.setProperty('--c','var('+d.c+')');
+  r.addEventListener('input',function(){S[d.k]=+r.value;update()});
+  w.appendChild(r);host.appendChild(w);inputs[d.k]={r:r,o:$('#o_'+d.k,w),d:d};
+}
+ctlDefs.forEach(function(d){mkCtl(d,ctls)});
+mkCtl({k:'bTotal',l:'Total time budget',max:480,min:60,c:'--accent'},$('#budCtls'));
+mkCtl({k:'bScroll',l:'Scrolling budget',max:240,min:15,c:'--scroll'},$('#budCtls'));
+
+var C=2*Math.PI*82,GAP=22,segs=$('#segs'),segEl={};
+CATS.forEach(function(c){
+  var s=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  s.setAttribute('class','seg');s.setAttribute('cx',100);s.setAttribute('cy',100);s.setAttribute('r',82);
+  s.style.stroke='var('+c.c+')';s.style.strokeDasharray='0 '+C;s.setAttribute('tabindex','-1');
+  segs.appendChild(s);segEl[c.k]=s;
+  s.addEventListener('pointerenter',function(){hot(c.k)});s.addEventListener('pointerleave',function(){hot(null)});
+  s.addEventListener('click',function(){hot(hotK===c.k?null:c.k)});
+});
+var legend=$('#legend'),legEl={};
+CATS.forEach(function(c){
+  var b=el('button','',' <span class="n"><i style="background:var('+c.c+')"></i>'+c.n+'</span><span class="v"></span>');
+  b.addEventListener('pointerenter',function(){hot(c.k)});b.addEventListener('pointerleave',function(){hot(null)});
+  b.addEventListener('focus',function(){hot(c.k)});b.addEventListener('blur',function(){hot(null)});
+  legend.appendChild(b);legEl[c.k]=b;
+});
+var hotK=null,total=0;
+function bigHTML(m){m=Math.round(m);var h=Math.floor(m/60),r=m%60;return h?h+'<small>h</small>'+r+'<small>m</small>':m+'<small>m</small>'}
+function hot(k){
+  hotK=k;CATS.forEach(function(c){segEl[c.k].classList.toggle('hot',k===c.k);segEl[c.k].classList.toggle('dim',!!k&&k!==c.k);legEl[c.k].classList.toggle('hot',k===c.k)});
+  if(k){$('#cBig').innerHTML=bigHTML(S[k]);$('#cLab').textContent=CATS.filter(function(c){return c.k===k})[0].n+(total?' · '+Math.round(S[k]/total*100)+'% of the day':'')}
+  else{$('#cBig').innerHTML=bigHTML(total);$('#cLab').textContent='screen time'}
+}
+var shown=100,tw;
+function tween(from,to,fn){cancelAnimationFrame(tw);if(reduce||headless){fn(to);return}var t0=performance.now();(function f(t){var p=Math.min(1,(t-t0)/500),e=1-Math.pow(1-p,3);fn(Math.round(from+(to-from)*e));if(p<1)tw=requestAnimationFrame(f)})(t0)}
+function label(s){return s>=80?'Nicely balanced':s>=60?'Mostly balanced':s>=40?'More scrolling in the mix than usual':'A less balanced day'}
+var rowsHost=$('#rows'),rowEl={};
+[['scroll','Scrolling',40,-1,'--scroll'],['create','Creating',15,1,'--create'],['late','Late scrolling',15,-1,'--social'],['long','Long scrolls',15,-1,'--utility'],['over','Over budget',35,-1,'--over']].forEach(function(r){
+  var d=el('div','row','<span>'+r[1]+'</span><div class="t"><i style="background:var('+r[4]+')"></i></div><em>0</em>');
+  rowsHost.appendChild(d);rowEl[r[0]]={bar:$('i',d),val:$('em',d),cap:r[2],sign:r[3]};
+});
+function setRow(k,v){var r=rowEl[k];r.bar.style.width=Math.min(100,v/r.cap*100)+'%';r.val.textContent=(v<.5?'0':(r.sign>0?'+':'−')+Math.round(v))}
+function update(){
+  S.late=Math.min(S.late,S.scroll);inputs.late.r.value=S.late;
+  total=S.create+S.social+S.scroll+S.utility;
+  // ring
+  var acc=0;
+  CATS.forEach(function(c){
+    var m=S[c.k],f=total?m/total:0,len=Math.max(0,f*C-GAP);
+    var s=segEl[c.k];
+    if(f<=0||len<.1){s.style.strokeDasharray='0 '+C;s.style.opacity=0}
+    else{s.style.opacity='';s.style.strokeDasharray=len+' '+(C-len);s.style.strokeDashoffset=-(acc*C+GAP/2)}
+    acc+=f;
+    legEl[c.k].querySelector('.v').textContent=dur(m);
+  });
+  // controls text
+  ctlDefs.forEach(function(d){var i=inputs[d.k];i.o.textContent=d.k==='long'?S[d.k]:dur(S[d.k]);fill(i.r)});
+  ['bTotal','bScroll'].forEach(function(k){inputs[k].o.textContent=dur(S[k]);fill(inputs[k].r)});
+  // balance (Keel's real formula)
+  var score=100,sc=0,cr=0,la=0,lo=0,ov=0;
+  if(total>=1){
+    sc=S.scroll/total*40;cr=S.create/total*15;la=Math.min(15,S.late/4);lo=Math.min(15,S.long*5);
+    if(S.bud){ov=Math.min(20,Math.max(0,S.scroll-S.bScroll)/2)+Math.min(15,Math.max(0,total-S.bTotal)/6)}
+    score=Math.max(0,Math.min(100,Math.round(100-sc+cr-la-lo-ov)));
+  }
+  setRow('scroll',sc);setRow('create',cr);setRow('late',la);setRow('long',lo);setRow('over',ov);
+  tween(shown,score,function(v){$('#sNum').textContent=v;shown=v});
+  var col=score>=60?'var(--good)':score>=40?'var(--scroll)':'var(--over)';
+  $('#sNum').style.color=col;$('#sLab').textContent=label(score);
+  $('#cBadge').textContent='Balance '+score;
+  hot(hotK);
+}
+var PRE=[
+  {create:90,social:30,scroll:20,utility:30,late:0,long:0,bud:false},
+  {create:23,social:17,scroll:61,utility:25,late:0,long:1,bud:false},
+  {create:10,social:20,scroll:230,utility:30,late:75,long:3,bud:true}
+];
+$$('#presets .pill').forEach(function(b,i){b.addEventListener('click',function(){
+  var p=PRE[i];Object.keys(p).forEach(function(k){S[k]=p[k]});
+  ctlDefs.forEach(function(d){inputs[d.k].r.value=S[d.k]});setBud(S.bud);update();
+})});
+function setBud(on){S.bud=on;$('#budTog').setAttribute('aria-checked',on);$('#bud').classList.toggle('open',on)}
+$('#budTog').addEventListener('click',function(){setBud(!S.bud);update()});
+// draw the ring in when it scrolls into view
+var ringTarget=null;
+(function(){
+  var snap={};CATS.forEach(function(c){snap[c.k]=S[c.k]});
+  if(reduce||headless||!('IntersectionObserver' in window)){update();return}
+  CATS.forEach(function(c){S[c.k]=0});update();
+  var o=new IntersectionObserver(function(es){if(es[0].isIntersecting){CATS.forEach(function(c){S[c.k]=snap[c.k]});update();o.disconnect()}},{threshold:.4});
+  o.observe($('#ring'));
+})();
+
+/* ---------- insights: heatmap ---------- */
+var DAYS=['M','T','W','T','F','S','S'],DN=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+function rnd(i){var x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)}
+var data=[];
+for(var d=0;d<7;d++){data.push([]);for(var h=0;h<24;h++){
+  var we=d>=5,v=0;
+  if(h>=7&&h<=9)v=.35+(we?-.1:.15);
+  if(h>=12&&h<=13)v=.3;
+  if(h>=17&&h<=23)v=.55+(we?.2:.05)+(h>=21?.1:0);
+  if(h<=1&&(d===4||we))v=Math.max(v,.35);
+  if(h>=2&&h<=6)v=0;
+  v=Math.max(0,Math.min(1,v+(rnd(d*24+h)-.5)*.5));
+  if(v<.08)v=0;
+  data[d].push(v);
+}}
+function mins(v){return Math.round(v*34)}
+var heat=$('#heat'),cells=[];
+for(var d=0;d<7;d++){
+  heat.appendChild(el('span','d',DAYS[d]));
+  for(var h=0;h<24;h++){
+    var b=el('button');b.style.setProperty('--v',data[d][h].toFixed(2));
+    b.setAttribute('aria-label',DN[d]+' '+hlab(h)+': '+mins(data[d][h])+' minutes');
+    (function(d,h,b){
+      function tip(){$('#tip').innerHTML='<b>'+DN[d]+', '+hlab(h)+'</b> · about '+dur(mins(data[d][h]))+(mins(data[d][h])>=25?' (a busy hour)':'')}
+      b.addEventListener('pointerenter',tip);b.addEventListener('focus',tip);b.addEventListener('click',tip);
+    })(d,h,b);
+    heat.appendChild(b);cells.push({b:b,d:d,h:h});
+  }
+}
+function hlab(h){return (h%12||12)+(h<12?'am':'pm')}
+var bands=[['Mornings',5,12,'5am and 12pm'],['Afternoons',12,17,'12 and 5pm'],['Evenings',17,23,'5 and 11pm'],['Late nights',23,29,'11pm and 5am']];
+function summarise(r){
+  var ds=r==='wd'?[0,1,2,3,4]:r==='we'?[5,6]:[0,1,2,3,4,5,6];
+  var best=null,tot=0;
+  bands.forEach(function(b){
+    var s=0;ds.forEach(function(d){for(var h=b[1];h<b[2];h++)s+=mins(data[d][h%24])});
+    s=s/ds.length;tot+=s;if(!best||s>best.s)best={n:b[0],s:s,w:b[3]};
+  });
+  $('#busy').textContent=best.n+' are your busiest time';
+  $('#busy2').textContent='About '+dur(best.s)+' a day between '+best.w+', out of roughly '+dur(tot)+' overall.';
+  cells.forEach(function(c){var on=ds.indexOf(c.d)>-1;c.b.style.opacity=on?1:.22});
+}
+$$('#range .pill').forEach(function(b){b.addEventListener('click',function(){
+  $$('#range .pill').forEach(function(x){x.setAttribute('aria-pressed',x===b)});summarise(b.dataset.r);
+})});
+summarise('all');
+if(!reduce&&'IntersectionObserver' in window&&!headless){
+  var ho=new IntersectionObserver(function(es){if(es[0].isIntersecting){cells.forEach(function(c){c.b.style.animationDelay=(c.h*22+c.d*30)+'ms';c.b.classList.add('pop')});ho.disconnect()}},{threshold:.3});
+  ho.observe(heat);
+}
+
+/* ---------- focus tabs ---------- */
+var tabs=$$('[role=tab]');
+function pick(i){tabs.forEach(function(t,k){t.setAttribute('aria-selected',k===i);t.tabIndex=k===i?0:-1;$('#'+t.getAttribute('aria-controls')).hidden=k!==i})}
+tabs.forEach(function(t,i){
+  t.addEventListener('click',function(){pick(i)});
+  t.addEventListener('keydown',function(e){
+    var n=e.key==='ArrowRight'?(i+1)%3:e.key==='ArrowLeft'?(i+2)%3:-1;
+    if(n>-1){pick(n);tabs[n].focus();e.preventDefault()}
+  });
+});
+// reveal-class panels must be visible even if hidden attr toggles
+$$('.panel').forEach(function(p){p.classList.add('in')});
+
+/* budgets + run */
+var past=[48,70,95,60,110,55,40,85,65,120,50,75,58,62],today=61;
+var dotsHost=$('#dots'),dotEls=past.map(function(){var i=el('i');dotsHost.appendChild(i);return i});
+function budgets(){
+  var B=+$('#bSlide').value;fill($('#bSlide'));
+  $('#bOut').textContent=dur(B);$('#mBud').textContent='Budget: '+dur(B);$('#mSo').textContent='Today so far: '+dur(today);
+  var max=Math.max(B,today)*1.25;
+  $('#mFill').style.width=today/max*100+'%';$('#mMark').style.left='calc('+B/max*100+'% - 1px)';
+  $('#meter').classList.toggle('over',today>B);
+  var st=$('#mStat');st.className='status '+(today>B?'over':'good');
+  st.textContent=today>B?'Over by '+dur(today-B)+'. A gentle nudge, never a block.':'Within budget, with '+dur(B-today)+' to spare.';
+  // run: weeks are chunks of 7, counted from the latest day
+  var state=past.map(function(m){return m<=B?'met':'miss'}),run=0,broke=false,missW={0:0,1:0};
+  for(var i=past.length-1;i>=0;i--){
+    var w=Math.floor((past.length-1-i)/7);
+    if(broke){state[i]='pre';continue}
+    if(state[i]==='met'){run++;continue}
+    if(missW[w]===0){missW[w]=1;state[i]='rest'}else{broke=true}
+  }
+  dotEls.forEach(function(d,i){var n=state[i]==='pre'?'pre':state[i]==='rest'?'rest':state[i]==='miss'?'miss':'';if(d.dataset.s!==n){d.className=n;d.dataset.s=n;d.classList.remove('flash');void d.offsetWidth;d.classList.add('flash')}d.title=past[i]+'m of scrolling'});
+  $('#run').textContent=run+(run===1?' day':' days');
+  $('#runNote').textContent=broke?'A second missed day in the same week ended the run.':'Rest days don’t count, and they don’t break the run.';
+}
+$('#bSlide').addEventListener('input',budgets);budgets();
+
+/* focus session */
+var fm=60,fTimer;
+$$('#fdur .pill').forEach(function(b){b.addEventListener('click',function(){
+  $$('#fdur .pill').forEach(function(x){x.setAttribute('aria-pressed',x===b)});fm=+b.dataset.m})});
+function clock(d){return d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
+var fOn=false;
+$('#fgo').addEventListener('click',function(){
+  fOn=!fOn;var b=$('#fgo');
+  if(fOn){var end=new Date(Date.now()+fm*60000);
+    b.textContent='End session';$('#fEye').textContent='In focus';
+    $('#fTitle').textContent='Until '+clock(end);
+    $('#fSub').textContent='Social & Scroll apps are resting. Tap one to see what happens.';
+    $('#fcard').style.borderColor='var(--accent)';
+  }else{
+    b.textContent='Start focus';$('#fEye').textContent='Not running';$('#fTitle').textContent='Pick a length, then start.';
+    $('#fSub').textContent='Social & Scroll apps stay open until you do.';$('#fMsg').textContent='';$('#fcard').style.borderColor='';
+  }
+});
+$$('#fapps .pill').forEach(function(b){b.addEventListener('click',function(){
+  var rest=fOn&&(b.dataset.a==='TikTok'||b.dataset.a==='Instagram'||b.dataset.a==='Messages');
+  $('#fMsg').innerHTML=!fOn?'<b>'+b.dataset.a+'</b> opens as usual.':rest?'<b>'+b.dataset.a+'</b> is resting. You can still open it if you need it. Keel just notes it.':'<b>'+b.dataset.a+'</b> isn’t a Social or Scroll app, so it opens as usual.';
+})});
+
+/* hard focus */
+var APPS=[
+  {n:'TikTok',l:'T',c:'#D2AC7B',b:1},{n:'Instagram',l:'I',c:'#B2A5D0',b:1},{n:'YouTube',l:'Y',c:'#D2AC7B',b:1},
+  {n:'Mail',l:'M',c:'#A2A9B4'},{n:'Maps',l:'M',c:'#A2A9B4'},{n:'Notes',l:'N',c:'#8DB59F'},
+  {n:'Books',l:'B',c:'#8DB59F'},{n:'Messages',l:'C',c:'#B2A5D0'},{n:'Camera',l:'C',c:'#8DB59F'}
+];
+var hm=60,hOn=false,hEnd=0,held=0,hint=null,grid=$('#appgrid'),appEls=[];
+APPS.forEach(function(a,i){
+  var b=el('button','app','<span class="ic" style="background:'+a.c+'">'+a.l+'</span><span>'+a.n+'</span>');
+  b.addEventListener('click',function(){tapApp(i)});grid.appendChild(b);appEls.push(b);
+});
+function paint(){APPS.forEach(function(a,i){appEls[i].classList.toggle('sel',!!a.b&&!hOn);appEls[i].classList.toggle('lock',!!a.b&&hOn)});
+  $('#hBlk').textContent=APPS.filter(function(a){return a.b}).length}
+paint();
+function tapApp(i){
+  var a=APPS[i];
+  if(!hOn){a.b=a.b?0:1;paint();return}
+  if(a.b){
+    held++;$('#hHeld').textContent=held;
+    $('#blkIc').textContent=a.l;$('#blkIc').style.background=a.c;$('#blkT').textContent=a.n+' is blocked';
+    $('#blkS').textContent='Hard Focus is on until '+clock(new Date(hEnd))+'. It’ll open again then.';
+    $('#blk').classList.add('on');
+  }else{
+    $('#opnIc').textContent=a.l;$('#opnIc').style.background=a.c;$('#opnT').textContent=a.n;$('#opn').classList.add('on');
+  }
+}
+$('#blkB').addEventListener('click',function(){$('#blk').classList.remove('on')});
+$('#opnB').addEventListener('click',function(){$('#opn').classList.remove('on')});
+$$('#hdur .pill').forEach(function(b){b.addEventListener('click',function(){
+  $$('#hdur .pill').forEach(function(x){x.setAttribute('aria-pressed',x===b)});hm=+b.dataset.m})});
+function tick(){
+  var left=Math.max(0,hEnd-Date.now());
+  if(left===0){stopHF('Time’s up. Your apps are open again.');return}
+  var s=Math.ceil(left/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;
+  $('#hLeft').textContent=(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0');
+}
+function stopHF(msg){
+  hOn=false;clearInterval(hint);$('#hBanner').classList.remove('on');$('#blk').classList.remove('on');$('#opn').classList.remove('on');
+  $('#hgo').textContent='Start Hard Focus';$('#hHint').textContent='Tap apps to choose what to block';$('#hmsg').textContent=msg||'';paint();
+}
+$('#hgo').addEventListener('click',function(){
+  if(hOn){$('#hend').click();return}
+  if(!APPS.some(function(a){return a.b})){$('#hmsg').textContent='Choose at least one app on the phone first.';return}
+  hOn=true;hEnd=Date.now()+hm*60000;$('#hmsg').textContent='';
+  $('#hgo').textContent='Running…';$('#hBanner').classList.add('on');$('#hHint').textContent='Try opening a blocked app';
+  paint();tick();hint=setInterval(tick,500);
+});
+$('#hend').addEventListener('click',function(){
+  if(!hOn){$('#hmsg').textContent='Nothing is running. Start a block, then try to end it.';return}
+  var b=$('#hbtn')||$('#hend');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');
+  var ph=$('.demo');ph.classList.remove('shake');void ph.offsetWidth;ph.classList.add('shake');
+  $('#hmsg').textContent='No way out. Hard Focus can’t be ended early, and Keel can’t be switched off or deleted while a block runs.';
+});
+setInterval(function(){$('#clock').textContent=clock(new Date())},20000);$('#clock').textContent=clock(new Date());
+
+/* ---------- platforms ---------- */
+var OS={
+  a:{name:'Android',sub:'Android 8 and up',big:'Widget',h:'Today, from your home screen.',p:'The Keel widget shows today’s screen time, your scrolling and your run without opening the app.',
+     list:['Home-screen widget with today’s time, scrolling and your run','Hard Focus covers blocked apps with a calm “blocked” screen','Also covers Keel’s Settings pages during a block, so it can’t be switched off early','Snoozes Social & Scroll notifications during a focus session']},
+  i:{name:'iPhone',sub:'iOS 17 and up',big:'Shields',h:'Blocked apps stay blocked.',p:'iOS can’t single out one app, so during a Hard Focus block no app can be deleted. Outside blocks, nothing changes.',
+     list:['Built on Apple’s Screen Time framework','Shield screens stand in front of blocked apps','Pickups and notifications counted per app','Light and dark themes, like Android']}
+};
+function setOS(k){
+  var o=OS[k];$$('#os .pill').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.os===k)});
+  $('#osName').textContent=o.name;$('#osSub').textContent=o.sub;$('#osBig').textContent=o.big;$('#osH').textContent=o.h;$('#osP').textContent=o.p;
+  var ul=$('#osList');ul.innerHTML='';o.list.forEach(function(t){ul.appendChild(el('li','',t))});
+}
+$$('#os .pill').forEach(function(b){b.addEventListener('click',function(){setOS(b.dataset.os)})});
+setOS('a');
+
+})();
+</script>
+</body>
+</html>
